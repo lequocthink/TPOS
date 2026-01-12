@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPOS Simulation Pro</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --header-gold: #b2945e;
+            --blue-pos: #4a90e2;
+            --red-void: #ef4444;
+            --selected-row: #cce3ff;
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-dark); overflow: hidden; }
+        .hidden { display: none !important; }
+
+        /* --- SCREEN 1: FLOOR --- */
+        #floor-screen { display: flex; flex-direction: column; height: 100vh; }
+        .top-nav { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--header-gold); color: white; }
+        .nav-item { padding: 15px; border-right: 1px solid rgba(255,255,255,0.2); text-align: center; font-weight: bold; cursor: pointer; }
+        .table-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 2px; background: #fff; flex-grow: 1; }
+        .table-item { background: #eae8e8; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 1px solid black; }
+
+        /* --- POPUP --- */
+        #table-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 320px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 100; border-radius: 4px; overflow: hidden; }
+        .popup-header { background: var(--blue-pos); color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .popup-body div { padding: 15px; border-bottom: 1px solid #eee; text-align: center; cursor: pointer; }
+        .popup-body div:hover { background: #f5f5f5; }
+
+        /* --- SCREEN 3: POS MAIN --- */
+        #pos-screen { display: grid; grid-template-columns: 400px 150px 1fr; height: 100vh; background: #f0f0f0; }
+
+        /* Left: Bill */
+        .bill-section { background: white; border-right: 1px solid #ccc; display: flex; flex-direction: column; }
+        .bill-header { background: #eee; padding: 10px; font-size: 13px; border-bottom: 1px solid #ddd; }
+        .bill-table-container { flex-grow: 1; overflow-y: auto; }
+        .bill-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .bill-table th { background: #f8f8f8; border: 1px solid #ddd; padding: 8px; position: sticky; top: 0; }
+        .bill-table td { border-bottom: 1px solid #eee; padding: 10px 8px; text-align: center; cursor: pointer; }
+        .bill-table tr.selected { background-color: var(--selected-row) !important; }
+        
+        .bill-summary { background: #fdfdfd; padding: 15px; border-top: 2px solid #ddd; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .summary-box { border: 1px solid #ccc; width: 120px; text-align: right; padding: 4px; background: white; font-weight: bold; }
+
+        /* Center: Categories */
+        .category-list { background: #dcdcdc; display: flex; flex-direction: column; gap: 2px; }
+        .cat-btn { padding: 15px 5px; border: none; color: white; font-weight: bold; cursor: pointer; min-height: 70px; font-size: 12px; }
+
+        /* Right: Products/Functions */
+        .right-panel { display: grid; grid-template-rows: 1fr auto; padding: 5px; gap: 5px; }
+        .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr); gap: 5px; }
+        
+        /* Buttons Style */
+        .pos-btn { background: white; border: 1px solid #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .pos-btn:active { transform: scale(0.98); }
+        
+        /* Specific Colors from Image 5 */
+        .btn-void { background-color: #ff4d4d !important; color: white; font-weight: bold; }
+        .btn-back-blue { background-color: #4a90e2 !important; color: white; font-weight: bold; }
+        .btn-pay { background: #a89462; color: white; grid-row: span 2; font-size: 18px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-func { background: #4a90e2; color: white; grid-row: span 2; border: none; cursor: pointer; }
+
+        .footer-controls { grid-column: span 4; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="floor-screen">
+        <div class="top-nav">
+            <div class="nav-item" style="background: #967d4b;">RESTAURANT</div>
+            <div class="nav-item">TAKEAWAY</div>
+            <div class="nav-item">MOBILEAPP</div>
+            <div class="nav-item">ONLINE-LE</div>
+            <div class="nav-item">DELIVERY</div>
+        </div>
+        <div style="width: 100%; height: 100%; display: flex;">
+            <div class="table-grid" id="tableGrid" style="height: 100%; width: 95%;"></div>
+            <!-- <div class="table-grid" id="tableGrid" style="height: 100%; width: 19%;"></div> -->
+            <div class="table-grid" style="height: 100%; width: 5%; display: flex; flex-direction: column; text-align: center; padding: 5px; padding-bottom: 10px;">
+                <div style="height: 33%; background-color: #dee0e3; display: flex; justify-content: center; align-items: center; border-radius: 15px;">
+                    Đổi nhân viên
+                </div>
+                <div style="height: 33%; background-color: #dee0e3; display: flex; justify-content: center; align-items: center; border-radius: 15px;">
+                    Đổi nhân viên
+                </div>
+                <div style="height: 32%; background-color: #dee0e3; display: flex; justify-content: center; align-items: center; border-radius: 15px;">
+                    Đổi nhân viên
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="table-popup" class="hidden">
+        <div class="popup-header" id="popupTitle">Table 1 - Free</div>
+        <div class="popup-body">
+            <div onclick="openPOS()">Open POS</div>
+            <div onclick="closePopup()">Change to Occupied</div>
+            <div onclick="closePopup()" style="color: red; border: none;">Cancel</div>
+        </div>
+    </div>
+
+    <div id="pos-screen" class="hidden">
+        <div class="bill-section">
+            <div class="bill-header" id="billTableName">Table 1 New Entry</div>
+            <div class="bill-table-container">
+                <table class="bill-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Mô tả</th>
+                            <th>SL</th>
+                            <th>%</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-body">
+                        </tbody>
+                </table>
+            </div>
+            <div class="bill-summary">
+                <div class="summary-row"><span>Tổng tiền</span> <div class="summary-box" id="total-amount">0</div></div>
+                <div class="summary-row"><span>Tổng số lượng</span> <div class="summary-box" id="total-qty">0</div></div>
+                <div class="summary-row"><span>Còn lại</span> <div class="summary-box" id="balance-amount" style="color: #d97706; background: #fef3c7;">0</div></div>
+                <button onclick="exitPOS()" style="margin-top: 10px; width: 100%; padding: 10px; cursor: pointer;">Đóng (Exit)</button>
+            </div>
+        </div>
+
+        <div class="category-list" id="categoryList"></div>
+
+        <div class="right-panel">
+            <div id="product-grid" class="grid-container"></div>
+
+            <div id="function-grid" class="grid-container hidden">
+                <div class="pos-btn" style="color: #10b981;">Kiểm tra giá</div>
+                <div class="pos-btn" style="color: #10b981;">Tìm mặt hàng</div>
+                <div class="pos-btn btn-void" onclick="voidSelectedRow()">Hủy dòng</div>
+                <div class="pos-btn">Manager Login</div>
+                <div class="pos-btn">Tra cứu kỳ bill</div>
+                <div></div>
+                <div class="pos-btn btn-back-blue" onclick="toggleView('product')">Quay lại</div>
+            </div>
+
+            <div class="footer-controls">
+                <button class="btn-pay">THANH TOÁN</button>
+                <button class="btn-func" onclick="toggleView('function')">CHỨC NĂNG</button>
+                <div class="pos-btn">Số lượng</div>
+                <div class="pos-btn">Member Coupon</div>
+                <div class="pos-btn">Hóa đơn VAT</div>
+                <div class="pos-btn" style="background: #3b82f6; color: white;" onclick="toggleView('product')">Quay lại</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA SETUP ---
+        const categories = [
+            { id: 'cf-tg', name: 'Cà phê Thế Giới', color: '#b2945e' },
+            { id: 'cf-vn', name: 'Cà phê Việt Nam', color: '#8c764d' },
+            { id: 'nuoc-ep', name: 'Nước ép trái cây', color: '#94a684' },
+            { id: 'sinh-to', name: 'Sinh tố & Kem', color: '#b2945e' }
+        ];
+
+        const productsData = {
+            'cf-tg': [
+                { name: 'Cà phê Legend - Đá', price: 55000 },
+                { name: 'Cà phê Legend - Nóng', price: 50000 },
+                { name: 'Cà phê Mother Land Đá', price: 60000 }
+            ],
+            'cf-vn': [
+                { name: 'Đột Phá - Đá', price: 35000 },
+                { name: 'Đột Phá - Sữa Đá', price: 40000 },
+                { name: 'Tư Duy - Sữa Đá', price: 40000 }
+            ]
+        };
+
+        let cart = [];
+        let selectedRowIndex = null;
+        let currentTable = null;
+
+        // --- RENDER FUNCTIONS ---
+        function initFloor() {
+            const grid = document.getElementById('tableGrid');
+            for (let i = 1; i <= 50; i++) {
+                const div = document.createElement('div');
+                div.className = 'table-item';
+                div.innerText = i;
+                div.onclick = () => {
+                    currentTable = i;
+                    document.getElementById('popupTitle').innerText = `Table ${i} - Free`;
+                    document.getElementById('table-popup').classList.remove('hidden');
+                };
+                grid.appendChild(div);
+            }
+        }
+
+        function renderCategories() {
+            const list = document.getElementById('categoryList');
+            list.innerHTML = '';
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = 'cat-btn';
+                btn.style.backgroundColor = cat.color;
+                btn.innerText = cat.name;
+                btn.onclick = () => renderProducts(cat.id);
+                list.appendChild(btn);
+            });
+        }
+
+        function renderProducts(catId) {
+            toggleView('product'); // Luôn quay về lưới sản phẩm khi chọn danh mục
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            const items = productsData[catId] || [];
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'pos-btn';
+                div.innerText = item.name;
+                div.onclick = () => addToCart(item);
+                grid.appendChild(div);
+            });
+        }
+
+        // --- LOGIC ---
+        function addToCart(product) {
+            const existing = cart.find(i => i.name === product.name);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            renderCart();
+        }
+
+        function renderCart() {
+            const body = document.getElementById('cart-body');
+            body.innerHTML = '';
+            let total = 0;
+            let totalQty = 0;
+
+            cart.forEach((item, index) => {
+                const subtotal = item.qty * item.price;
+                total += subtotal;
+                totalQty += item.qty;
+
+                const tr = document.createElement('tr');
+                if (selectedRowIndex === index) tr.className = 'selected';
+                tr.onclick = () => selectRow(index);
+                
+                tr.innerHTML = `
+                    <td style="text-align: left;">${item.name}</td>
+                    <td>${item.qty}</td>
+                    <td>0</td>
+                    <td>${subtotal.toLocaleString()}</td>
+                `;
+                body.appendChild(tr);
+            });
+
+            document.getElementById('total-amount').innerText = total.toLocaleString();
+            document.getElementById('balance-amount').innerText = total.toLocaleString();
+            document.getElementById('total-qty').innerText = totalQty;
+        }
+
+        function selectRow(index) {
+            selectedRowIndex = (selectedRowIndex === index) ? null : index;
+            renderCart();
+        }
+
+        function voidSelectedRow() {
+            if (selectedRowIndex !== null) {
+                cart.splice(selectedRowIndex, 1);
+                selectedRowIndex = null;
+                renderCart();
+            } else {
+                alert("Vui lòng chọn một dòng trong hóa đơn để hủy!");
+            }
+        }
+
+        function toggleView(view) {
+            if (view === 'function') {
+                document.getElementById('product-grid').classList.add('hidden');
+                document.getElementById('function-grid').classList.remove('hidden');
+            } else {
+                document.getElementById('product-grid').classList.remove('hidden');
+                document.getElementById('function-grid').classList.add('hidden');
+            }
+        }
+
+        // --- NAVIGATION ---
+        function openPOS() {
+            document.getElementById('table-popup').classList.add('hidden');
+            document.getElementById('floor-screen').classList.add('hidden');
+            document.getElementById('pos-screen').classList.remove('hidden');
+            document.getElementById('billTableName').innerText = `Table ${currentTable} New Entry`;
+            renderCategories();
+            renderProducts('cf-tg');
+        }
+
+        function exitPOS() {
+            document.getElementById('pos-screen').classList.add('hidden');
+            document.getElementById('floor-screen').classList.remove('hidden');
+            cart = []; // Reset cart khi thoát
+            renderCart();
+        }
+
+        function closePopup() {
+            document.getElementById('table-popup').classList.add('hidden');
+        }
+
+        initFloor();
+    </script>
+</body>
+</html>
